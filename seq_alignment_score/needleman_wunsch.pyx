@@ -18,11 +18,16 @@ cdef inline double fast_calc_affine_penalty(int length, double open, double exte
         penalty -= extend
     return penalty
 
-cdef inline double get2d(double * array, int col_size, int row, int col) nogil:
-    return array[row * col_size + col]
 
-cdef inline void set2d(double * array, int col_size, int row, int col, double value) nogil:
-    array[row * col_size + col] = value
+cdef inline double getCell(double * array, int col_size, int row, int col) nogil:
+    cdef int row_cycle = row % 2
+    return array[row_cycle * col_size + col]
+
+
+cdef inline void setCell(double * array, int col_size, int row, int col, double value) nogil:
+    cdef int row_cycle = row % 2
+    array[row_cycle * col_size + col] = value
+
 
 cdef float fast_score(
     long[:] sequenceA,
@@ -59,8 +64,8 @@ cdef float fast_score(
     cdef int lenB = len(sequenceB)
     cdef int col_size = lenB + 1
 
-    cdef double* score_matrix = <double *> malloc((lenA + 1) * (lenB + 1) * sizeof(double))
-    memset(score_matrix, 0, (lenA + 1) * (lenB + 1) * sizeof(double))
+    cdef double* score_matrix = <double *> malloc(2 * (lenB + 1) * sizeof(double))
+    memset(score_matrix, 0, 2 * (lenB + 1) * sizeof(double))
     
     # Now initialize the col 'matrix'. Actually this is only a one dimensional
     # list, since we only need the col scores from the last row.
@@ -91,7 +96,7 @@ cdef float fast_score(
             else:
                 match_score = mismatch
 
-            nogap_score =  get2d(score_matrix, col_size, row - 1, col - 1) + match_score
+            nogap_score =  getCell(score_matrix, col_size, row - 1, col - 1) + match_score
 
             # Check the score that would occur if there were a gap in
             # sequence A. This could come from opening a new gap or
@@ -103,10 +108,10 @@ cdef float fast_score(
             # score_matrix[row][col - 1]
 
             if row == lenA:
-                row_open = get2d(score_matrix, col_size, row, col - 1)
+                row_open = getCell(score_matrix, col_size, row, col - 1)
                 row_extend  = row_score
             else:
-                row_open = get2d(score_matrix, col_size, row, col - 1) + first_A_gap
+                row_open = getCell(score_matrix, col_size, row, col - 1) + first_A_gap
                 row_extend = row_score + extend
 
             row_score = max(row_open, row_extend)
@@ -114,17 +119,17 @@ cdef float fast_score(
             # The same for sequence B:
             # score_matrix[row - 1][ col]
             if col == lenB:
-                col_open = get2d(score_matrix, col_size, row - 1, col)
+                col_open = getCell(score_matrix, col_size, row - 1, col)
                 col_extend = col_score[col]
             else:
-                col_open = get2d(score_matrix, col_size, row - 1, col) + first_B_gap
+                col_open = getCell(score_matrix, col_size, row - 1, col) + first_B_gap
                 col_extend = col_score[col] + extend
 
             col_score[col] = max(col_open, col_extend)
 
             best_score = max(nogap_score, col_score[col], row_score)
             # score_matrix[row][ col]
-            set2d(score_matrix, col_size, row, col, best_score)
+            setCell(score_matrix, col_size, row, col, best_score)
 
 
     free(score_matrix)
@@ -211,4 +216,3 @@ def nw_matrix_score(seqs_a, seqs_b, match, mismatch, open, extend, penalize_exte
         A len(seqs_a) by len(seqs_b) matrix where the position i,j is the Needleman-Wunsch aligment score of seqs_a[i] with seqs_b[j].
     """
     return _matrix_scores_impl(seqs_a, seqs_b, match, mismatch, open, extend, penalize_extend_when_opening)
-
