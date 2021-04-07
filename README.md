@@ -5,7 +5,7 @@ Currently, the following algorithms are implemented:
 * Needleman-Wunsch aligment score.
 
 Installation:
- * Download the code: git clone https://github.com/rrunix/seq_alignment_score.git
+ * Download the code: git clone https://github.com/rrunix/sequence_metrics.git
  * Install: python setup.py install (Currently, it requires Cython to be installed)
 
 Usage:
