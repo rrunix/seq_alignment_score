@@ -8,7 +8,7 @@ extra_link_args=['-fopenmp']
 
 
 exts = [
-    Extension('seq_alignment_score.needleman_wunsch', ['seq_alignment_score/needleman_wunsch.pyx'],
+    Extension('sequence_metrics.needleman_wunsch', ['sequence_metrics/needleman_wunsch.pyx'],
               extra_compile_args=extra_compile_args, extra_link_args=extra_link_args)
 ]
 
@@ -20,16 +20,16 @@ compiler_directives = {
     'profile': True
 }
 
-setup(name='seq_alignment_score',
+setup(name='sequence_metrics',
       version="0.1alpha",
       ext_modules= cythonize(exts, compiler_directives=compiler_directives),
       include_dirs=[np.get_include()],
-      packages=['seq_alignment_score'],
+      packages=['sequence_metrics'],
       install_requires=[
           'numpy>=1.11.0', 'Cython>=0.29.14'
       ],
       author="rrunix",
       author_email="ruben.rrf93@gmail.com",
       license="BSD",
-      description="Compute sequence alignment scores",
-      keywords="Sequence Alignment Score")
+      description="A bunch of metrics between two sequences",
+      keywords="Sequence metrics")
