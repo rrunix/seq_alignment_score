@@ -1,5 +1,5 @@
-# seq_alignment_score: 
-A library to compute the aligment score between two sequences. The algorithms are implemented in cython (fast).
+# Sequence metrics: 
+A bunch of pairwise sequence metrics. The algorithms are implemented in cython (fast).
 
 Currently, the following algorithms are implemented:
 * Needleman-Wunsch aligment score.
@@ -11,7 +11,7 @@ Installation:
 Usage:
 ```python
 
-from seq_alignment_score.score import nw_score, nw_matrix_score
+from sequence_metrics.score import nw_score, nw_matrix_score
 
 # Two sequences
 print(nw_score([0, 1, 1], [0, 1, 1, 2], 2, -1, -0.5, -0.1, True))
