@@ -1,0 +1,15 @@
+# cython and python
+*.so
+*.c
+*.o
+*.pyc
+*.html
+**/__pycache__
+
+# package
+**/build
+**/dist
+**/*egg-info
+
+# IDE settings
+.vscode
