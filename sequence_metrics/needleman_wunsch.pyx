@@ -176,8 +176,8 @@ def nw_score(seq_a, seq_b, match, mismatch, open, extend, penalize_extend_when_o
     Calculate the score of the Needleman-Wunsch aligment (based on Gotoh modification).
 
     Args:
-        sequenceA (int[]): A sequence of numbers.
-        sequenceB (int[]): Another sequence of numbers.
+        seq_a (int[]): A sequence of numbers.
+        seq_b (int[]): Another sequence of numbers.
         match (double): score if two elements match (positive).
         mismatch (double): score if two elemnts are different (negative).
         open (double): open gap score (negative).
@@ -198,14 +198,14 @@ def nw_score(seq_a, seq_b, match, mismatch, open, extend, penalize_extend_when_o
     return scores
 
 
-def nw_matrix_score(seqs_a, seqs_b, match, mismatch, open, extend, penalize_extend_when_opening):
+def nw_score_matrix(seqs_a, seqs_b, match, mismatch, open, extend, penalize_extend_when_opening):
     """
     Calculate the score of the Needleman-Wunsch aligment (based on Gotoh modification). Calculates the pairwise
     scores of the sequences in seqs_a with the sequences in seqs_b.
 
     Args:
-        sequenceA (int[][]): A sequence of numbers.
-        sequenceB (int[][]): Another sequence of numbers.
+        seqs_a (int[][]): A list of sequences of numbers.
+        seqs_b (int[][]): Another list of sequences of numbers.
         match (double): score if two elements match (positive).
         mismatch (double): score if two elemnts are different (negative).
         open (double): open gap score (negative).

@@ -1,1 +1,0 @@
-from seq_alignment_score.needleman_wunsch import nw_matrix_score, nw_score

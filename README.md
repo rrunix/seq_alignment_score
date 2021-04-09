@@ -11,7 +11,7 @@ Installation:
 Usage:
 ```python
 
-from sequence_metrics.score import nw_score, nw_matrix_score
+from sequence_metrics.alignment import nw_score, nw_matrix_score
 
 # Two sequences
 print(nw_score([0, 1, 1], [0, 1, 1, 2], 2, -1, -0.5, -0.1, True))
