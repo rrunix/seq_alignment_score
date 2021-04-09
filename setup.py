@@ -9,6 +9,8 @@ extra_link_args=['-fopenmp']
 
 exts = [
     Extension('sequence_metrics.needleman_wunsch', ['sequence_metrics/needleman_wunsch.pyx'],
+              extra_compile_args=extra_compile_args, extra_link_args=extra_link_args),
+    Extension('sequence_metrics.edit_distance', ['sequence_metrics/edit_distance.pyx'],
               extra_compile_args=extra_compile_args, extra_link_args=extra_link_args)
 ]
 
