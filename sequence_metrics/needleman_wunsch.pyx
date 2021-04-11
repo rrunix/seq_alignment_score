@@ -4,6 +4,7 @@ from libc.string cimport memset
 cimport numpy as np
 import numpy as np
 
+import base
 
 cdef inline double fast_calc_affine_penalty(int length, double open, double extend, int penalize_extend_when_opening) nogil:
     """
@@ -31,7 +32,11 @@ cdef inline void setCell(double * array, int col_size, int row, int col, double 
 
 cdef float fast_score(
     long[:] sequenceA,
+    int a_start,
+    int a_end,
     long[:] sequenceB,
+    int b_start,
+    int b_end,
     double match,
     double mismatch,
     double open,
@@ -60,8 +65,8 @@ cdef float fast_score(
     # Create the score and traceback matrices. These should be in the
     # shape:
     # sequenceA (down) x sequenceB (across)
-    cdef int lenA = len(sequenceA)
-    cdef int lenB = len(sequenceB)
+    cdef int lenA = a_end - a_start
+    cdef int lenB = b_end - b_start
     cdef int col_size = lenB + 1
 
     cdef double* score_matrix = <double *> malloc(2 * (lenB + 1) * sizeof(double))
@@ -91,7 +96,7 @@ cdef float fast_score(
             # Calculate the score that would occur by extending the
             # alignment without gaps.
 
-            if sequenceA[row - 1] == sequenceB[col - 1]:
+            if sequenceA[a_start + row - 1] == sequenceB[b_start + col - 1]:
                 match_score = match
             else:
                 match_score = mismatch
@@ -137,19 +142,22 @@ cdef float fast_score(
     return best_score
 
 
-cdef _matrix_scores_impl(seqs_a, seqs_b, match, mismatch, open, extend, penalize_extend_when_opening):
+cdef _matrix_scores_impl(seqs_a, a_end, seqs_b, b_end, match, mismatch, open, extend, penalize_extend_when_opening):
 
-    cdef long[:, :] _seqs_a = np.array(seqs_a, dtype=int)
-    cdef long[:, :] _seqs_b = np.array(seqs_b, dtype=int)
+    cdef long[:] _seqs_a = np.array(seqs_a, dtype=int)
+    cdef long[:] _seqs_b = np.array(seqs_b, dtype=int)
+    cdef long[:] _a_end = np.array(a_end, dtype=int)
+    cdef long[:] _b_end = np.array(b_end, dtype=int)
+
     cdef double _match = match
     cdef double _mismatch = mismatch
     cdef double _open = open
     cdef double _extend = extend
     cdef int _penalize_extend_when_opening = int(penalize_extend_when_opening)
     
-    cdef int lenA = len(seqs_a)
-    cdef int lenB = len(seqs_b)
-    cdef double[:, :] scores = np.zeros((len(seqs_a), len(seqs_b)))
+    cdef int lenA = len(a_end)
+    cdef int lenB = len(b_end)
+    cdef double[:, :] scores = np.zeros((lenA, lenB))
     
     cdef int i, j
     cdef int symmetric = 0
@@ -157,18 +165,34 @@ cdef _matrix_scores_impl(seqs_a, seqs_b, match, mismatch, open, extend, penalize
     if lenA == lenB:
         symmetric = int(np.all(seqs_a == seqs_b))
 
-    if symmetric == 1:
-        for i in prange(lenA, nogil=True):
+    cdef int a_start_index, a_end_index
+    cdef int b_start_index, b_end_index
+    cdef int inner_start
+
+    for i in prange(lenA, nogil=True):
+        a_end_index = _a_end[i]
+        a_start_index = 0 if i == 0 else _a_end[i - 1]
+
+        if symmetric:
+            inner_start = i
+        else:
+            inner_start = 0
+
+        for j in range(inner_start, lenB):
+            b_end_index = _b_end[j]
+            b_start_index = 0 if j == 0 else _b_end[j - 1]
+
+            scores[i, j] = fast_score(_seqs_a, a_start_index, a_end_index, 
+                                      _seqs_b, b_start_index, b_end_index,
+                                      _match, _mismatch, _open, _extend, _penalize_extend_when_opening)
+
+    
+    if symmetric:
+        for i in range(lenA):
             for j in range(i, lenB):
-                scores[i, j] = scores[j, i] = fast_score(_seqs_a[i], _seqs_b[j], _match, _mismatch, 
-                    _open, _extend, _penalize_extend_when_opening)
-    else:
-        for i in prange(lenA, nogil=True):
-            for j in range(lenB):
-                scores[i, j] = fast_score(_seqs_a[i], _seqs_b[j], _match, _mismatch, 
-                    _open, _extend, _penalize_extend_when_opening)
+                scores[j, i] = scores[i, j]
             
-    return np.asarray(scores).reshape((len(seqs_a), len(seqs_b)))
+    return np.asarray(scores).reshape((lenA, lenB))
 
 
 def nw_score(seq_a, seq_b, match, mismatch, open, extend, penalize_extend_when_opening):
@@ -187,15 +211,7 @@ def nw_score(seq_a, seq_b, match, mismatch, open, extend, penalize_extend_when_o
     Returns:
         The Needleman-Wunsch aligment score.
     """
-    _seq_a = np.array(seq_a, dtype=int)
-    _seq_b = np.array(seq_b, dtype=int)
-    _match = float(match)
-    _mismatch = float(mismatch)
-    _open = float(open)
-    _extend = float(extend)
-    _penalize_extend_when_opening = int(penalize_extend_when_opening)
-    scores = fast_score(_seq_a, _seq_b, _match, _mismatch, _open, _extend, _penalize_extend_when_opening)
-    return scores
+    return nw_score_matrix([seq_a], [seq_b], match, mismatch, open, extend, penalize_extend_when_opening)[0]
 
 
 def nw_score_matrix(seqs_a, seqs_b, match, mismatch, open, extend, penalize_extend_when_opening):
@@ -215,4 +231,8 @@ def nw_score_matrix(seqs_a, seqs_b, match, mismatch, open, extend, penalize_exte
     Returns:
         A len(seqs_a) by len(seqs_b) matrix where the position i,j is the Needleman-Wunsch aligment score of seqs_a[i] with seqs_b[j].
     """
-    return _matrix_scores_impl(seqs_a, seqs_b, match, mismatch, open, extend, penalize_extend_when_opening)
+
+    mapping, (seqs_a_translated, seqs_a_end), (seqs_b_translated, seqs_b_end) = base.sequences_preprocess(seqs_a, seqs_b)
+    
+    return _matrix_scores_impl(seqs_a_translated, seqs_a_end, seqs_b_translated, seqs_b_end,
+     match, mismatch, open, extend, penalize_extend_when_opening)
